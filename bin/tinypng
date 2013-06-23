@@ -2,6 +2,20 @@
 
 def usage
   puts "tinypng input.png output.png"
+  puts "or"
+  puts "tinypng input/directory output/directory"
+end
+
+def shrink(input, output)
+  client = TinyPNG::Client.new
+  begin
+    image = client.shrink(File.open(input) { |file| file.read })
+  rescue TinyPNG::Exception => e
+    puts e
+    exit 1
+  end
+
+  FileUtils.cp(image.to_file, output)
 end
 
 input = ARGV[0]
@@ -14,14 +28,12 @@ end
 
 $LOAD_PATH << File.expand_path(File.join(__FILE__, '../../lib'))
 require 'tinypng'
-
-client = TinyPNG::Client.new
-begin
-  image = client.shrink(File.open(input) { |file| file.read })
-rescue TinyPNG::Exception => e
-  puts e
-  exit 1
-end
-
 require 'fileutils'
-FileUtils.cp(image.to_file, output)
+
+if File::ftype(input) == 'directory'
+  Dir::glob(File.join(input, '/*.png')).each do |f|
+    shrink(f, File.join(output, File.basename(f)))
+  end
+else
+  shrink(input, output)
+end
